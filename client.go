@@ -89,7 +89,7 @@ func (c *Client) UseSoap12() {
 // Call make a SOAP call
 func (c *Client) Call(soapAction string, request, response interface{}) (httpResponse *http.Response, err error) {
 
-	envelope := Envelope{}
+	envelope := Envelope{ Tem: "http://tempuri.org/" }
 
 	envelope.Body.Content = request
 
