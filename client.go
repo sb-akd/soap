@@ -53,15 +53,19 @@ type BasicAuth struct {
 	Password string
 }
 
+type TrackingCallback func([]byte) error
+
 // Client generic SOAP client
 type Client struct {
-	url         string
-	tls         bool
-	auth        *BasicAuth
-	tr          *http.Transport
-	Marshaller  XMLMarshaller
-	ContentType string
-	SoapVersion string
+	url           string
+	tls           bool
+	auth          *BasicAuth
+	tr            *http.Transport
+	Marshaller    XMLMarshaller
+	ContentType   string
+	SoapVersion   string
+	trackRequest  TrackingCallback
+	trackResponse TrackingCallback
 }
 
 // NewClient constructor. SOAP 1.1 is used by default. Switch to SOAP 1.2 with UseSoap12()
@@ -86,10 +90,18 @@ func (c *Client) UseSoap12() {
 	c.ContentType = SoapContentType12
 }
 
+func (c *Client) TrackRequest(callback TrackingCallback) {
+	c.trackRequest = callback
+}
+
+func (c *Client) TrackResponse(callback TrackingCallback) {
+	c.trackResponse = callback
+}
+
 // Call make a SOAP call
 func (c *Client) Call(soapAction string, request, response interface{}) (httpResponse *http.Response, err error) {
 
-	envelope := Envelope{ Tem: "http://tempuri.org/" }
+	envelope := Envelope{Tem: "http://tempuri.org/"}
 
 	envelope.Body.Content = request
 
@@ -104,6 +116,13 @@ func (c *Client) Call(soapAction string, request, response interface{}) (httpRes
 		xmlBytes = []byte(tmp)
 	}
 	//log.Println(string(xmlBytes))
+
+	if c.trackRequest != nil {
+		if err = c.trackRequest(xmlBytes); err != nil {
+			return nil, err
+		}
+		c.trackRequest = nil
+	}
 
 	//l("SOAP Client Call() => Marshalled Request\n", string(xmlBytes))
 
@@ -197,6 +216,13 @@ func (c *Client) Call(soapAction string, request, response interface{}) (httpRes
 	tmp := string(rawbody)
 	tmp = strings.Replace(tmp, NamespaceSoap12, NamespaceSoap11, -1)
 	rawbody = []byte(tmp)
+
+	if c.trackResponse != nil {
+		if err = c.trackResponse(rawbody); err != nil {
+			return nil, err
+		}
+		c.trackResponse = nil
+	}
 
 	respEnvelope := new(Envelope)
 	type Dummy struct {
