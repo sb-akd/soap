@@ -198,12 +198,13 @@ func (c *Client) Call(soapAction string, request, response interface{}) (httpRes
 		// Check if there is a body and if yes if it's a soapy one.
 		if len(rawbody) == 0 {
 			l("INFO: Response Body is empty!")
-			return // Empty responses are ok. Sometimes Sometimes only a Status 200 or 202 comes back
+			return // Empty responses are ok. Sometimes only a Status 200 or 202 comes back
 		}
 		// There is a message body, but it's not SOAP. We cannot handle this!
 		if !(strings.Contains(string(rawbody), "<soap") || strings.Contains(string(rawbody), "<SOAP")) {
-			l("This is not a SOAP-Message: \n" + string(rawbody))
-			return nil, errors.New("This is not a SOAP-Message: \n" + string(rawbody))
+			err = &BadResponse{RawBody:rawbody}
+			l(err.Error())
+			return nil, err
 		}
 		l("RAWBODY\n", string(rawbody))
 	}
