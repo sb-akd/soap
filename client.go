@@ -202,8 +202,8 @@ func (c *Client) Call(soapAction string, request, response interface{}) (httpRes
 		}
 		// There is a message body, but it's not SOAP. We cannot handle this!
 		if !(strings.Contains(string(rawbody), "<soap") || strings.Contains(string(rawbody), "<SOAP")) {
-			err = &BadResponse{RawBody:rawbody}
-			l(err.Error())
+			err = CheckError(rawbody)
+			l(err)
 			return nil, err
 		}
 		l("RAWBODY\n", string(rawbody))
